@@ -2,29 +2,25 @@
 - name: Configure Static IPv4 with Netplan
   hosts: localhost
   gather_facts: yes
+  become: yes
   vars_prompt:
+    - name: "interface_name"
+      prompt: "Enter the network interface name (e.g., enp0s8, enp0s9, enp0s3, , eth0)"
+      private: no
     - name: "static_ip"
-      prompt: "Enter the static IP address with prefix (e.g., 192.168.5.1/24)"
+      prompt: "Enter the static IP address with prefix (e.g., 192.168.0.1/24 or 172.16.0.1/24)"
       private: no
     - name: "gateway_ip"
-      prompt: "Enter the gateway IP address (e.g., 192.168.5.1/24)"
+      prompt: "Enter the gateway IP address (e.g., 192.168.0.1/24 or 172.16.0.1/24)"
       private: no
     - name: "dns_servers"
-      prompt: "Enter at least two DNS servers, separated by a space (e.g., 192.168.5.10 192.168.5.1)"
+      prompt: "Enter at least two DNS servers, separated by a space (e.g., 192.168.0.1/24 or 172.16.0.1/24)"
       private: no
+
   tasks:
-    - name: Gather the primary network interface
-      ansible.builtin.command: ip route get 8.8.8.8
-      register: route_info
-      changed_when: false
-
-    - name: Set primary interface fact
-      set_fact:
-        primary_interface: "{{ route_info.stdout.split()[4] }}"
-
     - name: Configure Netplan for static IP
       ansible.builtin.template:
-        src: netplan_static_template.j2
+        src: "./templates/netplan_static_template.j2"
         dest: "/etc/netplan/01-netcfg.yaml"
         mode: '0644'
 
