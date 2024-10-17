@@ -1,0 +1,18 @@
+network:
+  version: 2
+  ethernets:
+    {{ interface1 }}:
+      addresses:
+        - {{ static_ip1 }}
+      gateway4: {{ gateway_ip }}
+      nameservers:
+        addresses:
+          - {{ dns_servers.split()[0] }}
+          - {{ dns_servers.split()[1] }}
+      mtu: {{ mtu }}
+
+    {{ interface2 }}:
+      addresses:
+        - {{ static_ip2 }}
+      mtu: {{ mtu }}
+

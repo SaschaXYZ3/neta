@@ -1,0 +1,48 @@
+---
+- name: Install and configure ISC DHCP server
+  hosts: localhost
+  gather_facts: yes
+  become: yes  # Ensure privileged access for installation and configuration
+
+  vars_prompt:
+    - name: "subnet"
+      prompt: "Enter the subnet (e.g., 192.168.5.0)"
+      private: no
+    - name: "subnet_mask"
+      prompt: "Enter the subnet mask (e.g., 255.255.255.0)"
+      private: no
+    - name: "ip_range_start"
+      prompt: "Enter the starting IP address for the range (e.g., 192.168.5.100)"
+      private: no
+    - name: "ip_range_end"
+      prompt: "Enter the ending IP address for the range (e.g., 192.168.5.149)"
+      private: no
+    - name: "gateway"
+      prompt: "Enter the gateway IP address (e.g., 192.168.5.1)"
+      private: no
+    - name: "dns_servers"
+      prompt: "Enter the DNS servers (comma-separated, e.g., 8.8.8.8,192.168.5.10)"
+      private: no
+    - name: "domain_name"
+      prompt: "Enter the domain name (e.g., HartlSascha.neta.fh-campuswien.ac.at)"
+      private: no
+
+  tasks:
+    - name: Install ISC DHCP server
+      ansible.builtin.apt:
+        name: isc-dhcp-server
+        state: present
+        update_cache: yes
+
+    - name: Configure DHCP server
+      ansible.builtin.template:
+        src: dhcpd.conf.j2
+        dest: /etc/dhcp/dhcpd.conf
+        mode: '0644'
+
+    - name: Restart ISC DHCP server
+      ansible.builtin.systemd:
+        name: isc-dhcp-server
+        state: restarted
+        enabled: yes
+

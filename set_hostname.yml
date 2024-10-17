@@ -1,0 +1,31 @@
+---
+- name: Set hostname and configure /etc/hosts
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+
+  vars_prompt:
+    - name: "static_ip"
+      prompt: "Enter the static IP address"
+      private: no
+    - name: "hostname"
+      prompt: "Enter the short hostname"
+      private: no
+    - name: "domain"
+      prompt: "Enter the domain name"
+      private: no
+
+  tasks:
+    - name: Set the hostname
+      ansible.builtin.command:
+        cmd: hostnamectl set-hostname "{{ hostname }}.{{ domain }}"
+      become: yes
+
+    - name: Update /etc/hosts with IP, shortname, and FQDN
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: "^{{ static_ip }}\\s"
+        line: "{{ static_ip }} {{ hostname }} {{ hostname }}.{{ domain }}"
+        state: present
+      become: yes
+

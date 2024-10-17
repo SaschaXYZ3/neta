@@ -1,0 +1,65 @@
+---
+- name: Install and configure Nginx on the web server
+  hosts: localhost
+  gather_facts: yes
+  become: yes  # Ensure we have root privileges
+
+  vars_prompt:
+    - name: "website_number"
+      prompt: "Enter the website number (1, 2, ...)"
+      private: no
+    - name: "git_repo"
+      prompt: "Enter the Git repository URL to clone the website"
+      private: no
+    - name: "server_name"
+      prompt: "Enter the server name (e.g., HartlSascha.neta.fh-campuswien.ac.at)"
+      private: no
+
+  tasks:
+    - name: Install Nginx and Git
+      ansible.builtin.apt:
+        name:
+          - nginx
+          - git
+        state: present
+        update_cache: yes
+
+    - name: Allow Nginx through the firewall
+      ansible.builtin.ufw:
+        rule: allow
+        name: 'Nginx HTTP'
+
+    - name: Clone the website from Git
+      ansible.builtin.git:
+        repo: "{{ git_repo }}"
+        dest: "/var/www/website{{ website_number }}"
+        update: yes  # Ensures it pulls the latest changes if the directory exists
+
+    - name: Set ownership of the website files
+      ansible.builtin.file:
+        path: "/var/www/website{{ website_number }}"
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+
+    - name: Configure Nginx for the website
+      ansible.builtin.template:
+        src: nginx_site.j2
+        dest: "/etc/nginx/sites-available/website{{ website_number }}.conf"
+        mode: '0644'
+
+    - name: Enable the website configuration
+      ansible.builtin.command:
+        cmd: "ln -s /etc/nginx/sites-available/website{{ website_number }}.conf /etc/nginx/sites-enabled/website{{ website_number }}.conf"
+      args:
+        removes: "/etc/nginx/sites-enabled/website{{ website_number }}.conf"
+
+    - name: Test Nginx configuration
+      ansible.builtin.command: nginx -t
+
+    - name: Reload Nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: reloaded
+

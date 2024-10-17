@@ -1,0 +1,15 @@
+# dhcpd.conf
+default-lease-time 600;
+max-lease-time 7200;
+
+# Mark this server as authoritative for the subnet
+authoritative;
+
+# Subnet declaration for {{ subnet }}
+subnet {{ subnet }} netmask {{ subnet_mask }} {
+    range {{ ip_range_start }} {{ ip_range_end }};
+    option routers {{ gateway }};
+    option domain-name-servers {{ dns_servers }};
+    option domain-name "{{ domain_name }}";
+}
+
