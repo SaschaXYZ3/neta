@@ -1,3 +1,4 @@
+# Netplan configuration for two interfaces
 network:
   version: 2
   ethernets:
@@ -7,10 +8,11 @@ network:
       gateway4: {{ gateway_ip }}
       nameservers:
         addresses:
-          - {{ dns_servers.split()[0] }}
-          - {{ dns_servers.split()[1] }}
+          {% for dns in dns_servers.split() %}
+          - {{ dns }}
+          {% endfor %}
       mtu: {{ mtu }}
-
+      
     {{ interface2 }}:
       addresses:
         - {{ static_ip2 }}

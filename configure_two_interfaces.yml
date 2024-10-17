@@ -2,42 +2,37 @@
 - name: Configure Static IPv4 for Two Interfaces with Netplan
   hosts: localhost
   gather_facts: yes
+  become: yes
   vars_prompt:
     - name: "interface1"
-      prompt: "Enter the name of the first interface (e.g., ens18)"
+      prompt: "Enter the name of the first interface (e.g., enp0s8, ens18 , eth0)"
       private: no
     - name: "static_ip1"
-      prompt: "Enter the static IP address with prefix for {{ interface1 }} (e.g., 10.100.0.169/24)"
+      prompt: "Enter the static IP address with prefix for interface1 (e.g., 10.100.0.169/24 or 10.0.0.10/24)"
       private: no
     - name: "gateway_ip"
-      prompt: "Enter the gateway IP address for {{ interface1 }} (e.g., 10.100.0.1)"
+      prompt: "Enter the gateway IP address for interface1 (e.g., 10.100.0.1 or 10.0.0.1)"
       private: no
     - name: "dns_servers"
       prompt: "Enter at least two DNS servers, separated by space (e.g., 8.8.8.8 9.9.9.9)"
       private: no
     - name: "interface2"
-      prompt: "Enter the name of the second interface (e.g., ens19)"
+      prompt: "Enter the name of the second interface (e.g., enp0s9, ens19, eth1)"
       private: no
     - name: "static_ip2"
-      prompt: "Enter the static IP address with prefix for {{ interface2 }} (e.g., 192.168.5.1/24)"
+      prompt: "Enter the static IP address with prefix for interface2 (e.g., 192.168.5.1/24)"
       private: no
     - name: "mtu"
       prompt: "Enter the MTU size (e.g., 1450)"
       private: no
 
   tasks:
-    - name: Debug the input variables
-      debug:
-        msg: "interface1={{ interface1 }}, static_ip1={{ static_ip1 }}, gateway_ip={{ gateway_ip }}, dns_servers={{ dns_servers }}, interface2={{ interface2 }}, static_ip2={{ static_ip2 }}, mtu={{ mtu }}"
-
     - name: Configure Netplan for two interfaces
       ansible.builtin.template:
-        src: netplan_dual_interface_template.j2
+        src: "./templates/netplan_dual_interface_template.j2"
         dest: "/etc/netplan/01-netcfg.yaml"
-        mode: '0644'
+        mode: '0600'
       become: yes
-
     - name: Apply Netplan configuration
       ansible.builtin.command: netplan apply
       become: yes
-
