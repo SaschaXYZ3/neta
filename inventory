@@ -1,0 +1,15 @@
+[webServer]
+192.168.5.20
+
+[mailServer]
+192.168.5.30
+
+[dnsServer]
+192.168.5.10
+
+[clientWorkstation]
+192.168.5.50
+
+[gatewayServer]
+192.168.5.1
+
