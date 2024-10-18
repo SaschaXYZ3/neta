@@ -11,6 +11,7 @@ network:
           {% for dns in dns_servers.split() %}
           - {{ dns }}
           {% endfor %}
+
       mtu: {{ mtu }}
       
     {{ interface2 }}:
