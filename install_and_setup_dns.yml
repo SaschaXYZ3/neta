@@ -1,0 +1,82 @@
+---
+- name: Setup BIND9 DNS Server with Reverse Zone
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars_prompt:
+    - name: "domain"
+      prompt: "Enter the domain name (e.g., example.com)"
+      private: no
+    - name: "forwarder1"
+      prompt: "Enter the first forwarder IP (e.g., 8.8.8.8)"
+      private: no
+    - name: "forwarder2"
+      prompt: "Enter the second forwarder IP (leave blank if none)"
+      private: no
+    - name: "internal_network"
+      prompt: "Enter the internal network (e.g., 192.168.5.0/24)"
+      private: no
+    - name: "dns_record_ip"
+      prompt: "Enter the IP address for the first DNS record"
+      private: no
+    - name: "dns_record_fqdn"
+      prompt: "Enter the FQDN for the first DNS record (e.g., host.example.com)"
+      private: no
+    - name: "reverse_zone"
+      prompt: "Enter the reverse zone network (e.g., 192.168.5 for 192.168.5.x addresses)"
+      private: no
+
+  tasks:
+    - name: Install BIND9
+      ansible.builtin.apt:
+        name: bind9
+        state: present
+        update_cache: yes
+
+    - name: Configure named.conf.local for the domain and reverse zone
+      ansible.builtin.template:
+        src: "./templates/named.conf.local.j2"
+        dest: "/etc/bind/named.conf.local"
+        mode: '0644'
+      become: yes
+
+    - name: Configure named.conf.options for forwarders and internal network
+      ansible.builtin.template:
+        src: "./templates/named.conf.options.j2"
+        dest: "/etc/bind/named.conf.options"
+        mode: '0644'
+      become: yes
+
+    - name: Create the DNS zone file for the domain
+      ansible.builtin.template:
+        src: "./templates/db.domain.j2"
+        dest: "/etc/bind/db.{{ domain }}"
+        mode: '0644'
+      become: yes
+
+    - name: Create the reverse DNS zone file
+      ansible.builtin.template:
+        src: "./templates/db.reverse.j2"
+        dest: "/etc/bind/db.{{ reverse_zone }}"
+        mode: '0644'
+      become: yes
+
+    - name: Restart BIND9 service
+      ansible.builtin.systemd:
+        name: bind9
+        state: restarted
+        enabled: yes
+
+    - name: Verify BIND9 configuration
+      ansible.builtin.command: named-checkconf
+      become: yes
+
+    - name: Verify DNS zone file
+      ansible.builtin.command: named-checkzone {{ domain }} /etc/bind/db.{{ domain }}
+      become: yes
+
+    - name: Verify reverse DNS zone file
+      ansible.builtin.command: named-checkzone {{ reverse_zone }}.in-addr.arpa /etc/bind/db.{{ reverse_zone }}
+      become: yes
+
