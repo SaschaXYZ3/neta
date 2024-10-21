@@ -1,0 +1,76 @@
+---
+- name: Setup Gateway Server
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars_prompt:
+    - name: "flush_rules"
+      prompt: "Do you want to flush all iptables rules? (yes or no)"
+      private: no
+    - name: "external_interface"
+      prompt: "Enter the external interface name (e.g., enp0s3, eth0)"
+      private: no
+    - name: "internal_interface"
+      prompt: "Enter the internal interface name (e.g., enp0s8, eth1)"
+      private: no
+
+  tasks:
+    - name: Install iptables-persistent for saving iptables rules
+      ansible.builtin.apt:
+        name: iptables-persistent
+        state: present
+        update_cache: yes
+      become: yes
+
+    - name: Flush all iptables rules if requested
+      ansible.builtin.shell: iptables -F
+      when: flush_rules == "yes"
+      become: yes
+
+    - name: Enable IPv4 forwarding temporarily
+      ansible.builtin.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: yes
+        state: present
+        reload: yes
+
+    - name: Make IPv4 forwarding persistent
+      ansible.builtin.lineinfile:
+        path: /etc/sysctl.conf
+        regexp: '^net.ipv4.ip_forward'
+        line: 'net.ipv4.ip_forward = 1'
+        state: present
+        backup: yes
+
+    - name: Apply sysctl changes
+      ansible.builtin.command: sysctl -p
+      become: yes
+
+    - name: Set up IP forwarding from external to internal interface
+      ansible.builtin.shell: >
+        iptables -t nat -A POSTROUTING -o {{ external_interface }} -j MASQUERADE
+      become: yes
+
+    - name: Set up forwarding rule for traffic from internal to external
+      ansible.builtin.shell: >
+        iptables -A FORWARD -i {{ internal_interface }} -o {{ external_interface }} -j ACCEPT
+      become: yes
+
+    - name: Set up forwarding rule for external traffic coming back to internal
+      ansible.builtin.shell: >
+        iptables -A FORWARD -i {{ external_interface }} -o {{ internal_interface }} -m state --state RELATED,ESTABLISHED -j ACCEPT
+      become: yes
+
+    - name: Save iptables rules to make them persistent
+      ansible.builtin.shell: iptables-save > /etc/iptables/rules.v4
+      become: yes
+
+    - name: Ensure iptables-persistent service is enabled to restore rules on boot
+      ansible.builtin.systemd:
+        name: netfilter-persistent
+        enabled: yes
+        state: started
+      become: yes
+
