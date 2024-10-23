@@ -2,7 +2,7 @@ server {
     listen 80;
     server_name {{ server_name }};
 
-    root /var/www/website{{ website_number }};
+    root /var/www/website{{ website_number }}/project;  # Adjust this line based on your project structure
     index index.html;
 
     location / {

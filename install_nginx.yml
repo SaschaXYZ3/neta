@@ -2,7 +2,7 @@
 - name: Install and configure Nginx on the web server
   hosts: localhost
   gather_facts: yes
-  become: yes
+  become: yes  # Ensure we have root privileges
 
   vars_prompt:
     - name: "website_number"
@@ -12,7 +12,7 @@
       prompt: "Enter the Git repository URL to clone the website"
       private: no
     - name: "server_name"
-      prompt: "Enter the server name (e.g., HartlSascha.neta.fh-campuswien.ac.at)"
+      prompt: "Enter the server name (e.g., example.com)"
       private: no
 
   tasks:
@@ -33,7 +33,7 @@
       ansible.builtin.git:
         repo: "{{ git_repo }}"
         dest: "/var/www/website{{ website_number }}"
-        update: yes
+        update: yes  # Ensures it pulls the latest changes if the directory exists
         force: yes
 
     - name: Set ownership of the website files
@@ -51,10 +51,16 @@
         mode: '0644'
 
     - name: Enable the website configuration
-      ansible.builtin.command:
-        cmd: "ln -s /etc/nginx/sites-available/website{{ website_number }}.conf /etc/nginx/sites-enabled/website{{ website_number }}.conf"
-      args:
-        removes: "/etc/nginx/sites-enabled/website{{ website_number }}.conf"
+      ansible.builtin.file:
+        src: "/etc/nginx/sites-available/website{{ website_number }}.conf"
+        dest: "/etc/nginx/sites-enabled/website{{ website_number }}.conf"
+        state: link
+
+    - name: Add entry to /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        line: "127.0.0.1 {{ server_name }}"
+        state: present
 
     - name: Test Nginx configuration
       ansible.builtin.command: nginx -t
