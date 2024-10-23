@@ -1,0 +1,67 @@
+---
+- name: Add DNS record and reverse record to Bind9
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+
+  vars_prompt:
+    - name: "hostname"
+      prompt: "Enter the hostname (e.g., www)"
+      private: no
+    - name: "domain"
+      prompt: "Enter the domain name (e.g., example.com)"
+      private: no
+    - name: "ip_address"
+      prompt: "Enter the IP address (e.g., 192.168.5.10)"
+      private: no
+    - name: "record_type"
+      prompt: "Enter the DNS record type (e.g., A, CNAME, PTR)"
+      private: no
+
+  tasks:
+    - name: Validate the IP address format
+      assert:
+        that:
+          - ip_address is search("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$")
+        fail_msg: "The provided IP address is not valid."
+
+    - name: Add forward DNS record to zone file
+      block:
+        - name: Determine forward zone file path
+          set_fact:
+            zone_file: "/etc/bind/db.{{ domain }}"
+
+        - name: Add the DNS record to the forward zone
+          lineinfile:
+            path: "{{ zone_file }}"
+            line: "{{ hostname }} IN {{ record_type }} {{ ip_address }}"
+            insertafter: "^$"
+          notify: restart_bind
+
+    - name: Add reverse DNS record to reverse zone file
+      block:
+        - name: Split IP address into octets
+          set_fact:
+            octets: "{{ ip_address.split('.') }}"
+
+        - name: Generate reverse zone entry
+          set_fact:
+            reverse_ip: "{{ octets[3] }}.{{ octets[2] }}.{{ octets[1] }}.{{ octets[0] }}"
+
+        - name: Determine reverse zone file path
+          set_fact:
+            reverse_zone_file: "/etc/bind/db.{{ octets[2] }}.{{ octets[1] }}.{{ octets[0] }}"
+
+        - name: Add PTR record to reverse zone
+          lineinfile:
+            path: "{{ reverse_zone_file }}"
+            line: "{{ octets[3] }} IN PTR {{ hostname }}.{{ domain }}."
+            insertafter: "^$"
+          notify: restart_bind
+
+  handlers:
+    - name: restart_bind
+      ansible.builtin.systemd:
+        name: bind9
+        state: restarted
+
