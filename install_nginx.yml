@@ -2,7 +2,7 @@
 - name: Install and configure Nginx on the web server
   hosts: localhost
   gather_facts: yes
-  become: yes  # Ensure we have root privileges
+  become: yes
 
   vars_prompt:
     - name: "website_number"
@@ -33,7 +33,8 @@
       ansible.builtin.git:
         repo: "{{ git_repo }}"
         dest: "/var/www/website{{ website_number }}"
-        update: yes  # Ensures it pulls the latest changes if the directory exists
+        update: yes
+        force: yes
 
     - name: Set ownership of the website files
       ansible.builtin.file:
