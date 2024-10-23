@@ -1,0 +1,37 @@
+---
+- name: Add an fixed IP address to DHCP server configuration
+  hosts: localhost
+  gather_facts: no
+  become: yes  # Ensure privileged access for modifying the DHCP configuration
+
+  vars_prompt:
+    - name: "fixed_ip"
+      prompt: "Enter the fixed IP address to assign to a Client (e.g., 192.168.5.200)"
+      private: no
+    - name: "mac_address"
+      prompt: "Enter the MAC address of the devicewhich should have a fix IP (e.g., 00:11:22:33:44:55)"
+      private: no
+
+  tasks:
+    - name: Backup current DHCP configuration
+      ansible.builtin.copy:
+        src: /etc/dhcp/dhcpd.conf
+        dest: /etc/dhcp/dhcpd.conf.bak
+        remote_src: yes
+
+    - name: Add fixed IP address to DHCP configuration
+      ansible.builtin.lineinfile:
+        path: /etc/dhcp/dhcpd.conf
+        regexp: "^    host .*{{ mac_address }};"
+        line: |
+          host device_{{ mac_address | replace(':', '_') }} {
+              hardware ethernet {{ mac_address }};
+              fixed-address {{ fixed_ip }};
+          }
+        state: present
+
+    - name: Restart ISC DHCP server
+      ansible.builtin.systemd:
+        name: isc-dhcp-server
+        state: restarted
+
