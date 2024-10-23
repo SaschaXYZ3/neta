@@ -1,15 +1,14 @@
-$TTL    604800
-@       IN      SOA     ns1.{{ domain }}. root.{{ domain }}. (
-                              2         ; Serial
-                         604800         ; Refresh
-                          86400         ; Retry
-                        2419200         ; Expire
-                         604800 )       ; Negative Cache TTL
+$TTL    86400
+@       IN      SOA     ns1.{{ domain }}. admin.{{ domain }}. (
+                            1         ; Serial
+                            604800    ; Refresh
+                            86400     ; Retry
+                            2419200   ; Expire
+                            86400 )   ; Negative Cache TTL
 
-; Name servers
+; Nameservers
 @       IN      NS      ns1.{{ domain }}.
 
-; A records
-ns1     IN      A       {{ dns_record_ip }}
-{{ dns_record_fqdn.split('.')[0] }} IN A {{ dns_record_ip }}
+; A record for the nameserver
+ns1     IN      A       {{ nameserver_ip }}
 

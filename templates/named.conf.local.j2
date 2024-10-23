@@ -5,6 +5,6 @@ zone "{{ domain }}" {
 
 zone "{{ reverse_zone }}.in-addr.arpa" {
     type master;
-    file "/etc/bind/db.{{ reverse_zone }}";
+    file "/etc/bind/db.{{ reverse_zone_file_name }}";
 };
 

@@ -8,14 +8,8 @@ options {
         {% endif %}
     };
 
-    // Allow recursive queries
-    recursion yes;
-
-    // Allow queries from your internal network
     allow-query { {{ internal_network }}; };
-    allow-recursion { {{ internal_network }}; };
-
-    // Listen on all interfaces
+    recursion yes;
     listen-on { any; };
 };
 

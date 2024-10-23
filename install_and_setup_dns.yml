@@ -1,5 +1,5 @@
 ---
-- name: Setup BIND9 DNS Server with Reverse Zone
+- name: Setup BIND9 DNS Server with Forward and Reverse Zone for Nameserver Only
   hosts: localhost
   become: yes
   gather_facts: yes
@@ -17,11 +17,8 @@
     - name: "internal_network"
       prompt: "Enter the internal network (e.g., 192.168.5.0/24)"
       private: no
-    - name: "dns_record_ip"
-      prompt: "Enter the IP address for the first DNS record"
-      private: no
-    - name: "dns_record_fqdn"
-      prompt: "Enter the FQDN for the first DNS record (e.g., host.example.com)"
+    - name: "nameserver_ip"
+      prompt: "Enter the IP address of the nameserver"
       private: no
     - name: "reverse_zone"
       prompt: "Enter the reverse zone network (e.g., 192.168.5 for 192.168.5.x addresses)"
@@ -33,6 +30,10 @@
         name: bind9
         state: present
         update_cache: yes
+
+    - name: Convert reverse zone IP for file naming
+      set_fact:
+        reverse_zone_file_name: "{{ reverse_zone.split('.') | reverse | join('.') }}"
 
     - name: Configure named.conf.local for the domain and reverse zone
       ansible.builtin.template:
@@ -48,17 +49,17 @@
         mode: '0644'
       become: yes
 
-    - name: Create the DNS zone file for the domain
+    - name: Create the forward DNS zone file for the domain (nameserver only)
       ansible.builtin.template:
         src: "./templates/db.domain.j2"
         dest: "/etc/bind/db.{{ domain }}"
         mode: '0644'
       become: yes
 
-    - name: Create the reverse DNS zone file
+    - name: Create the reverse DNS zone file (PTR record for the nameserver)
       ansible.builtin.template:
         src: "./templates/db.reverse.j2"
-        dest: "/etc/bind/db.{{ reverse_zone }}"
+        dest: "/etc/bind/db.{{ reverse_zone_file_name }}"
         mode: '0644'
       become: yes
 
@@ -77,6 +78,6 @@
       become: yes
 
     - name: Verify reverse DNS zone file
-      ansible.builtin.command: named-checkzone {{ reverse_zone }}.in-addr.arpa /etc/bind/db.{{ reverse_zone }}
+      ansible.builtin.command: named-checkzone {{ reverse_zone_file_name }}.in-addr.arpa /etc/bind/db.{{ reverse_zone_file_name }}
       become: yes
 
