@@ -11,8 +11,11 @@
     - name: "git_repo"
       prompt: "Enter the Git repository URL to clone the website"
       private: no
+    - name: "subdir"
+      prompt: "Enter a subdirectory for the website if the Git project has one"
+      private: no
     - name: "server_name"
-      prompt: "Enter the server name (e.g., example.com)"
+      prompt: "Enter the server name (e.g., neta1.example.com)"
       private: no
 
   tasks:
@@ -28,6 +31,18 @@
       ansible.builtin.ufw:
         rule: allow
         name: 'Nginx HTTP'
+
+    - name: Ensure /var/www/website directory exists with correct ownership
+      ansible.builtin.file:
+        path: "/var/www/website{{ website_number }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Mark the directory as safe for Git (to avoid dubious ownership error)
+      ansible.builtin.command:
+        cmd: "git config --global --add safe.directory /var/www/website{{ website_number }}"
 
     - name: Clone the website from Git
       ansible.builtin.git:
