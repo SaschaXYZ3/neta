@@ -1,15 +1,22 @@
 # /etc/vsftpd.conf
 
+#list only on IPv4
 listen=YES
 listen_ipv6=NO
-#uncomment
+
+#allow users to upload
 write_enable=YES
-#add
+
+#disable anonymous logins
 anonymous_enable=NO
 local_enable=YES
+
+#set directory with permissions
 local_root=/var/www
 chroot_local_user=YES
 allow_writeable_chroot=YES
+
+#passive mode
 port_enable=YES
 pasv_enable=YES
 pasv_min_port=40000
@@ -17,4 +24,3 @@ pasv_max_port=50000
 
 # Use our server's public IP address
 pasv_address={{ external_gw_ip }}
-
