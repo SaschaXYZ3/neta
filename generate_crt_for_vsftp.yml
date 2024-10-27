@@ -1,0 +1,62 @@
+---
+- name: Generate SSL certificate for vsftpd
+  hosts: localhost
+  become: yes
+  gather_facts: no
+
+  vars_prompt:
+    - name: "country"
+      prompt: "Enter the country code (e.g., AT)"
+      private: no
+    - name: "state"
+      prompt: "Enter the state or province (e.g., Vienna)"
+      private: no
+    - name: "locality"
+      prompt: "Enter the locality or city (e.g., Vienna)"
+      private: no
+    - name: "organization"
+      prompt: "Enter the organization name (e.g., MyCompany)"
+      private: no
+    - name: "common_name"
+      prompt: "Enter the common name (e.g., local.domain)"
+      private: no
+    - name: "cert_days"
+      prompt: "Enter the number of days the certificate should be valid for (e.g., 365)"
+      default: "365"
+      private: no
+
+  tasks:
+    - name: Ensure SSL directory exists
+      ansible.builtin.file:
+        path: /etc/ssl/private
+        state: directory
+        mode: '0700'
+
+    - name: Generate SSL certificate and key with openssl
+      ansible.builtin.command:
+        cmd: >
+          openssl req -x509 -nodes -days {{ cert_days }} -newkey rsa:4096
+          -keyout /etc/ssl/private/vsftpd.key
+          -out /etc/ssl/private/vsftpd.crt
+          -subj "/C={{ country }}/ST={{ state }}/L={{ locality }}/O={{ organization }}/CN={{ common_name }}"
+      args:
+        creates: /etc/ssl/private/vsftpd.crt
+
+    - name: Ensure correct permissions on the certificate and key
+      ansible.builtin.file:
+        path: /etc/ssl/private/vsftpd.key
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Ensure correct permissions on the certificate
+      ansible.builtin.file:
+        path: /etc/ssl/private/vsftpd.crt
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Print certificate details
+      ansible.builtin.command:
+        cmd: "openssl x509 -in /etc/ssl/private/vsftpd.crt -noout -text"
+

@@ -1,0 +1,33 @@
+---
+- name: "Change configuration vsftpd: from FTP to SFTP"
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+
+  vars_prompt:
+    - name: "external_gw_ip"
+      prompt: "Enter the external Gateway IP to configure the FTP so it will be reachable from outside (e.g., 10.100.0.169)"
+      private: no
+    - name: "backup_extension"
+      prompt: "Enter an extension for the backup file (e.g., ori -> vsftpd.conf.ori)"
+      private: no
+
+  tasks: 
+    - name: Backup current vsftpd.conf
+      ansible.builtin.template:
+        src: "/etc/vsftpd.conf"
+        dest: "/etc/vsftpd.conf.{{ backup_extension }}"
+        remote_src: yes
+
+    - name: Configure vsftpd.conf
+      ansible.builtin.template:
+        src: "templates/vsftpd_with_crt.conf.j2"
+        dest: "/etc/vsftpd.conf"
+        mode: '0644'
+      become: yes
+
+
+    - name: Reload vsftpd
+      ansible.builtin.systemd:
+        name: vsftpd
+        state: restarted
