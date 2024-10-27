@@ -1,0 +1,56 @@
+---
+- name: Install and configure vsftpd and firewall rules for FTP
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  vars_prompt:
+    - name: "external_gw_ip"
+      prompt: "Enter the external Gateway IP to configure the FTP so it will be reachable from outside (e.g., 10.100.0.169)"
+      private: no
+    - name: "backup_extension"
+      prompt: "Enter an extension for the backup file (e.g., ori -> vsftpd.conf.ori)"
+      private: no
+
+  tasks:
+    - name: Install vsftpd
+      ansible.builtin.apt:
+        name:
+          - vsftpd
+        state: present
+        update_cache: yes
+        
+    - name: Backup current vsftpd.conf
+      ansible.builtin.template:
+        src: "/etc/vsftpd.conf"
+        dest: "/etc/vsftpd.conf.{{ backup_extension }}"
+        remote_src: yes
+
+    - name: Configure vsftpd.conf
+      ansible.builtin.template:
+        src: "vsftpd.conf.j2"
+        dest: "/etc/vsftpd.conf"
+        mode: '0644'
+      become: yes
+
+    - name: Reload vsftpd
+      ansible.builtin.systemd:
+        name: vsftpd
+        state: restarted
+
+    # Configure firewall rules
+    - name: Allow FTP port 21 through firewall
+      ansible.builtin.ufw:
+        rule: allow
+        port: 21
+        proto: tcp
+
+    - name: Allow passive FTP ports 40000-50000 through firewall
+      ansible.builtin.ufw:
+        rule: allow
+        port: "40000:50000"
+        proto: tcp
+
+    - name: Ensure UFW is enabled
+      ansible.builtin.ufw:
+        state: enabled
+
