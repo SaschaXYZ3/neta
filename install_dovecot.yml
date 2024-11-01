@@ -1,0 +1,63 @@
+---
+- name: Install and configure Dovecot
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars_prompt:
+    - name: "backup"
+      prompt: "Enter backup name for dovecot.conf (e.g., dovecot.conf.backup)"
+      private: no
+        
+  tasks:
+    - name: Install Dovecot packages
+      ansible.builtin.apt:
+        name:
+          - dovecot-core
+          - dovecot-imapd
+        state: present
+        update_cache: yes
+
+    - name: Backup original dovecot.conf file
+      ansible.builtin.copy:
+        src: /etc/dovecot/dovecot.conf
+        dest: /etc/dovecot/{{ backup }}
+        backup: yes
+
+    - name: Configure Dovecot to use IMAP protocol
+      ansible.builtin.lineinfile:
+        path: /etc/dovecot/dovecot.conf
+        regexp: "^protocols ="
+        line: "protocols = imap"
+        state: present
+
+    - name: Configure mail location to Maildir format
+      ansible.builtin.lineinfile:
+        path: /etc/dovecot/dovecot.conf
+        regexp: "^mail_location ="
+        line: "mail_location = maildir:/var/mail/%u"
+        state: present
+
+    - name: Enable secure login by disabling plaintext authentication
+      ansible.builtin.lineinfile:
+        path: /etc/dovecot/dovecot.conf
+        regexp: "^disable_plaintext_auth ="
+        line: "disable_plaintext_auth = yes"
+        state: present
+
+    - name: Restart Dovecot service to apply changes
+      ansible.builtin.systemd:
+        name: dovecot
+        state: restarted
+        enabled: yes
+
+    - name: Verify Dovecot configuration
+      ansible.builtin.command: dovecot -n
+      register: dovecot_check
+      failed_when: dovecot_check.rc != 0
+      changed_when: false
+
+    - name: Output configuration status
+      ansible.builtin.debug:
+        msg: "Dovecot configuration updated successfully."
+
