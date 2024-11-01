@@ -1,0 +1,57 @@
+---
+- name: Install and configure Postfix
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  vars_prompt:
+    - name: "mail_server_name"
+      prompt: "Enter the mail server name (e.g., mail.example.com)"
+      private: no
+    - name: "backupname"
+      prompt: "Enter the backup name for postfix/main.cf"
+      private: no
+
+  tasks:
+    - name: Install Postfix
+      ansible.builtin.apt:
+        name: postfix
+        state: present
+        update_cache: yes
+
+    - name: Backup main.cf configuration file
+      ansible.builtin.copy:
+        src: /etc/postfix/main.cf
+        dest: "/etc/postfix/{{ backupname }}"
+        backup: yes
+
+    - name: Configure Postfix main.cf with server name
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        regexp: "^myhostname ="
+        line: "myhostname = {{ mail_server_name }}"
+        state: present
+        create: yes
+
+    - name: Ensure Postfix uses the Internet Site mail setup
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        regexp: "^mydestination ="
+        line: "mydestination = {{ mail_server_name }}, localhost.localdomain, localhost"
+        state: present
+
+    - name: Restart Postfix to apply configuration
+      ansible.builtin.systemd:
+        name: postfix
+        state: restarted
+        enabled: yes
+
+    - name: Verify Postfix configuration
+      ansible.builtin.command: postfix check
+      register: postfix_check
+      failed_when: postfix_check.rc != 0
+
+    - name: Output configuration status
+      ansible.builtin.debug:
+        msg: "Postfix configuration is successful"
+
