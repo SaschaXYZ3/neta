@@ -8,6 +8,9 @@
     - name: "mail_server_name"
       prompt: "Enter the mail server name (e.g., mail.example.com)"
       private: no
+    - name: "networkscope"
+      prompt: "Enter the network scope (e.g., 172.16.1.0/24 | multiple networks separated by space)"
+      private: no
     - name: "backupname"
       prompt: "Enter the backup name for postfix/main.cf"
       private: no
@@ -28,6 +31,14 @@
     - name: Configure Postfix main.cf with server name
       ansible.builtin.lineinfile:
         path: /etc/postfix/main.cf
+        regexp: "^smtpd_banner ="
+        line: "smtpd_banner = $myhostname"
+        state: present
+        create: yes
+
+    - name: Configure Postfix main.cf with server name
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
         regexp: "^myhostname ="
         line: "myhostname = {{ mail_server_name }}"
         state: present
@@ -39,6 +50,36 @@
         regexp: "^mydestination ="
         line: "mydestination = {{ mail_server_name }}, localhost.localdomain, localhost"
         state: present
+
+    - name: Set networks
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        regexp: "^mynetworks ="
+        line: "mynetworks = 127.0.0.0/8 {{ networkscope }}"
+        state: present
+
+    - name: Ensure /etc/mailname exists and contains mail server name
+      ansible.builtin.lineinfile:
+        path: /etc/mailname
+        line: "{{ mail_server_name }}"
+        state: present
+        create: yes
+
+    - name: Set default_transport to smtp
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        regexp: "^default_transport ="
+        line: "default_transport = smtp"
+        state: present
+        create: yes
+
+    - name: Set relay_transport to smtp
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        regexp: "^relay_transport ="
+        line: "relay_transport = smtp"
+        state: present
+        create: yes
 
     - name: Restart Postfix to apply configuration
       ansible.builtin.systemd:
