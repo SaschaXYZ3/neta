@@ -48,7 +48,7 @@
       ansible.builtin.lineinfile:
         path: /etc/postfix/main.cf
         regexp: "^mydestination ="
-        line: "mydestination = {{ mail_server_name }}, localhost.localdomain, localhost"
+        line: "mydestination = {{ mail_server_name }}, $myhostname, localhost.localdomain, localhost"
         state: present
 
     - name: Set networks
@@ -62,6 +62,14 @@
       ansible.builtin.lineinfile:
         path: /etc/mailname
         line: "{{ mail_server_name }}"
+        state: present
+        create: yes
+
+    - name: Set myorigin
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        regexp: "^myorigin ="
+        line: "myorigin = /etc/mailname"
         state: present
         create: yes
 
