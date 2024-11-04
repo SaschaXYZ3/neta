@@ -50,6 +50,7 @@
         dest: "/var/www/website{{ website_number }}"
         update: yes  # Ensures it pulls the latest changes if the directory exists
         force: yes
+        ignore_errors: yes
 
     - name: Set ownership of the website files
       ansible.builtin.file:
